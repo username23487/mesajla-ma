@@ -25,6 +25,10 @@ const authError = document.getElementById('auth-error');
 const logoutButton = document.getElementById('logout-button');
 const currentUserInfo = document.getElementById('current-user-info');
 
+// Sidebar Menü Elemanları
+const chatMenu = document.getElementById('chat-menu');
+const sidebarAuthPlaceholder = document.getElementById('sidebar-auth-placeholder');
+
 // Sohbet Elemanları
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
@@ -66,10 +70,10 @@ function switchScreen(screenId) {
 
 // Menü sekmesi ve içeriği değiştirme
 function switchTab(tabId) {
-    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('#menu-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
 
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.querySelectorAll('#sidebar .tab-content').forEach(content => content.classList.remove('active'));
     
     let contentElement;
     if (tabId === 'tab-general' || tabId === 'tab-online') {
@@ -83,7 +87,7 @@ function switchTab(tabId) {
     }
     
     // Genel sohbete otomatik geçiş
-    if (tabId === 'tab-general') {
+    if (tabId === 'tab-general' || tabId === 'tab-online') {
         switchChatArea('general');
     }
 }
@@ -98,11 +102,12 @@ function switchChatArea(area) {
         chatTitle.textContent = 'Genel Sohbet';
         // Dinleyicileri yönet
         if (privateChatListener) privateChatListener(); // Özel sohbeti durdur
+        listenForMessages(); // Genel sohbeti başlat
     } else if (area === 'private' && activePrivateChat.chatId) {
         privateMessagesContainer.classList.add('active');
         chatTitle.textContent = `Özel Sohbet: ${activePrivateChat.targetUsername}`;
         // Dinleyicileri yönet
-        if (currentChatListener) listenForMessages(); // Genel sohbeti durdur
+        if (currentChatListener) currentChatListener(); // Genel sohbeti durdur
         listenForPrivateMessages(activePrivateChat.chatId); // Özel sohbeti başlat
     }
 }
@@ -196,39 +201,49 @@ authForm.addEventListener('submit', async (e) => {
 });
 
 
-// Oturum Durumu Kontrolü (Ekran Geçişi Düzeltmesi burada kontrol edildi)
+// Oturum Durumu Kontrolü 
 auth.onAuthStateChanged(user => {
     if (user) {
         // Kullanıcı Giriş Yaptı
-        // NOT: CSS'te #auth-screen ve #chat-application arasındaki geçiş doğru yapıldığı için
-        // bu kısım giriş yapıldığında sohbet uygulamasını açar.
-        currentUsername = user.displayName || user.email.split('@')[0];
-        currentUserInfo.innerHTML = `Hoş Geldin, **${currentUsername}**! ID: <span style="font-weight: bold; color: yellow;">${user.uid}</span>`;
+        
+        // 1. Sidebar Menüsünü Göster
+        chatMenu.classList.remove('hidden');
+        sidebarAuthPlaceholder.style.display = 'none';
+
+        // 2. Ana Uygulama Ekranına Geç
         switchScreen('chat-application');
         
-        // Dinleyicileri başlat/sıfırla
+        // 3. Kullanıcı Bilgilerini Yükle
+        currentUsername = user.displayName || user.email.split('@')[0];
+        currentUserInfo.innerHTML = `Hoş Geldin, **${currentUsername}**! ID: <span style="font-weight: bold; color: yellow;">${user.uid}</span>`;
+        
+        // 4. Dinleyicileri sıfırla/başlat
         if (currentChatListener) currentChatListener();
         if (privateChatListener) privateChatListener();
         if (onlineUsersListener) onlineUsersListener();
 
-        listenForMessages();
         handleOnlineStatus(true); // Çevrimiçi Durumunu Kaydet
         listenForOnlineUsers(); // Çevrimiçi Kullanıcıları Dinle
         switchTab('tab-online'); // Başlangıçta çevrimiçi listesini göster
-        switchChatArea('general'); // Başlangıçta genel sohbete geç
-
+        // Genel sohbet otomatik olarak switchTab içinde başlatılır
+        
     } else {
         // Kullanıcı Çıkış Yaptı / Giriş Yapmadı
-        handleOnlineStatus(false); // Çevrimdışı Durumunu Kaydet (Session Storage ile değil, Database ile çalışır)
-        currentUsername = null;
+        
+        // 1. Sidebar Placeholder'ı Göster
+        chatMenu.classList.add('hidden');
+        sidebarAuthPlaceholder.style.display = 'block';
+
+        // 2. Giriş/Kayıt Ekranına Geç
         switchScreen('auth-screen');
         
-        // Dinleyicileri temizle
+        // 3. Dinleyicileri temizle
         if (currentChatListener) currentChatListener();
         if (privateChatListener) privateChatListener();
         if (onlineUsersListener) onlineUsersListener();
         
         // Arayüzü temizle
+        currentUsername = null;
         messageContainer.innerHTML = '';
         privateMessagesContainer.innerHTML = '<p style="text-align: center; color: #aaa; padding: 20px;">Henüz aktif bir özel sohbet yok. Lütfen bir kullanıcı seçin.</p>';
         activePrivateChat = { chatId: null, targetUid: null, targetUsername: null };
@@ -236,19 +251,20 @@ auth.onAuthStateChanged(user => {
 });
 
 
-// 6. ÇEVRİMİÇİ DURUMU YÖNETİMİ (SORUN 1 & 2 FIX)
+// 6. ÇEVRİMİÇİ DURUMU YÖNETİMİ 
 
 // Kullanıcının çevrimiçi durumunu kaydet/sil
 async function handleOnlineStatus(isOnline) {
     const user = auth.currentUser;
-    // Eğer isOnline false ise ve user null ise (tamamen çıkış yapılmışsa), işlem yapmaya gerek yok.
-    if (!user && isOnline) return; 
+    
+    if (!user) {
+        return; 
+    }
 
-    const onlineRef = db.collection('online_users').doc(user ? user.uid : 'temp-id');
+    const onlineRef = db.collection('online_users').doc(user.uid);
     
     if (isOnline) {
         try {
-            // Kullanıcı bilgileri doğru ve güncel olmalı
             await onlineRef.set({
                 uid: user.uid,
                 username: user.displayName || user.email.split('@')[0],
@@ -258,56 +274,34 @@ async function handleOnlineStatus(isOnline) {
             console.error("Çevrimiçi durumu ayarlanamadı:", e);
         }
     } else {
-        // Oturum kapandığında kaydı sil (ÇOK ÖNEMLİ DÜZELTME)
-        // Eğer kullanıcı çıkış yapıyorsa (signOut), user null olur. Bu durumda 
-        // silme işlemini signOut event'i sırasında yapmamız gerekir.
-        // Bu yüzden Firestore'un ON DISCONNECT özelliğini kullanmak daha güvenlidir,
-        // ancak web'de basitçe signOut anında sileriz.
-        
-        // Ekstra Güvenlik Adımı: Eğer bir kullanıcı çıkış yapmışsa ve online listesinde kaldıysa,
-        // bu kaydı temizlemeliyiz.
-        if (auth.currentUser === null) {
-            // Bu kısım normalde çalışmaz, çünkü signOut sırasında onAuthStateChanged çağrılır.
-            // Fakat ekstra bir önlem olarak, bir önceki kullanıcının UID'sini tutmak gerekebilir.
-            // En iyi çözüm, signOut olayına bağlanmak.
-            
-            // Basitlik adına, signOut olayını yakalıyoruz:
-            // (Bu kod logoutButton listener'ında uygulanacak)
-        }
+        // Bu kısım sadece logoutButton event'inde tetiklenir
+        console.warn("handleOnlineStatus(false) çağrıldı ancak burada silme işlemi yapılmadı. Logout butonunu kontrol edin.");
     }
 }
 
 // Çevrimiçi Kullanıcıları Dinleme
 function listenForOnlineUsers() {
     if (onlineUsersListener) onlineUsersListener(); 
+    
+    const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+    if (!currentUid) {
+        onlineUsersList.innerHTML = '<p style="padding: 10px; color: red;">Yetkilendirme bekleniyor...</p>';
+        return; 
+    }
 
     onlineUsersListener = db.collection('online_users')
-        .onSnapshot(async snapshot => {
+        .onSnapshot(snapshot => {
             onlineUsersList.innerHTML = '';
-            const currentUid = auth.currentUser ? auth.currentUser.uid : null;
-
-            if (!currentUid) return;
-
-            const batch = db.batch();
             let hasActiveUsers = false;
 
-            for (const doc of snapshot.docs) {
+            snapshot.forEach(doc => {
                 const user = doc.data();
-                
-                // Kullanıcı silinmiş mi kontrol et (Auth'ta olup olmadığını kontrol et)
-                // Bu doğrudan client-side'da yapılamaz, Admin SDK gerektirir.
-                // Basitçe, eğer kendi oturumumuz açıksa ve user.uid'i bizimkine eşit değilse göster.
                 
                 if (user.uid !== currentUid) { // Kendini listeden hariç tut
                     displayOnlineUser(user);
                     hasActiveUsers = true;
                 }
-            }
-
-            // EK DÜZELTME: Sürekli çevrimdışı kalanları silmek için bir kontrol ekleyelim
-            // Bu kontrol, Firestore kurallarında daha iyidir (örneğin 5 dakika pasif kalanı sil),
-            // ancak manuel bir kontrol mekanizması da ekleyebiliriz.
-            // Şimdilik sadece aktif oturumları gösterip, çıkış anında silmeyi garanti edelim.
+            });
             
             if (!hasActiveUsers) {
                  onlineUsersList.innerHTML = '<p style="padding: 10px; color: #aaa;">Sizden başka çevrimiçi kimse yok.</p>';
@@ -319,7 +313,7 @@ function listenForOnlineUsers() {
 }
 
 
-// Çıkış Yapma İşlevi (SORUN 1 FIX - Çıkış anında online kaydını temizle)
+// Çıkış Yapma İşlevi (Online kaydını temizler)
 logoutButton.addEventListener('click', async () => {
     const user = auth.currentUser;
     if (user) {
@@ -337,11 +331,7 @@ logoutButton.addEventListener('click', async () => {
 });
 
 
-// Diğer fonksiyonlar (displayOnlineUser, startPrivateChatFromMenu, getChatId, 
-// messageForm.addEventListener, sendGeneralMessage, listenForMessages, 
-// sendPrivateMessage, listenForPrivateMessages, displayMessage)
-
-// ... (Burada 7. Bölümdeki Mesajlaşma İşlevleri aynı kalır)
+// 7. MESAJLAŞMA İŞLEVLERİ
 
 // Çevrimiçi Kullanıcıyı Menüye Ekleme
 function displayOnlineUser(user) {
@@ -362,7 +352,11 @@ function displayOnlineUser(user) {
 }
 
 function startPrivateChatFromMenu(uid, username) {
-    if (!auth.currentUser) return alert("Önce giriş yapmalısınız.");
+    if (!auth.currentUser) {
+        // Bu durum onAuthStateChanged ile zaten kontrol edilmeli, ancak güvenlik için eklendi.
+        console.error("Özel sohbet başlatmak için giriş yapmalısınız.");
+        return; 
+    }
     
     activePrivateChat.targetUid = uid;
     activePrivateChat.targetUsername = username;
@@ -372,12 +366,10 @@ function startPrivateChatFromMenu(uid, username) {
     switchChatArea('private'); 
 }
 
-
-// 7. MESAJLAŞMA İŞLEVLERİ
-
 // Chat ID oluşturma
 function getChatId(targetUid) {
     const currentUid = auth.currentUser.uid;
+    // Lexicographical order (alfabetik/sayısal) kullanarak sabit bir ID oluşturur.
     return currentUid < targetUid 
         ? `${currentUid}-${targetUid}` 
         : `${targetUid}-${currentUid}`;
@@ -388,7 +380,7 @@ messageForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = messageInput.value.trim();
 
-    if (!text || !currentUsername) return;
+    if (!text || !currentUsername || !auth.currentUser) return; // Null kontrolü
 
     if (activeChat === 'private' && activePrivateChat.chatId) {
         await sendPrivateMessage(text);
@@ -503,7 +495,11 @@ function displayMessage(message, container, isPrivate = false) {
     container.appendChild(messageElement);
 }
 
-// Otomatik başlatma: Eğer başlangıçta kullanıcı varsa veya giriş ekranındaysak
+// DOM Yüklendiğinde Başlangıç Durumunu Ayarla 
 document.addEventListener('DOMContentLoaded', () => {
-    // Başlangıçta Auth durumu onAuthStateChanged tarafından halledilir.
+    // onAuthStateChanged tetiklenene kadar placeholder görünür kalır.
+    if (!auth.currentUser) {
+        chatMenu.classList.add('hidden');
+        sidebarAuthPlaceholder.style.display = 'block';
+    }
 });
