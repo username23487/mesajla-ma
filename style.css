@@ -80,6 +80,8 @@ button:last-of-type:hover { background-color: #388e3c; }
 .logout-btn {
     background-color: #f44336; /* Kırmızı */
     color: white;
+    padding: 8px 15px; /* Daha küçük düğme */
+    font-size: 0.9rem;
 }
 .logout-btn:hover { background-color: #d32f2f; }
 
@@ -93,28 +95,88 @@ button:last-of-type:hover { background-color: #388e3c; }
 /* Sohbet Arayüzü Stili */
 /* ============================================== */
 
-/* Sohbet Ana Kapsayıcı */
-.chat-wrapper {
+/* Ana Kapsayıcı */
+.app-container {
     display: flex;
-    flex-direction: column;
-    height: 95vh;
     width: 100%;
-    max-width: 700px;
+    height: 100vh;
+    max-width: 1200px;
     background: #ffffff;
-    border-radius: 16px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    margin: 20px;
 }
 
-/* Başlık Alanı */
+/* Sol Panel (Sidebar) */
+.sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background-color: #f5f5f5;
+    border-right: 1px solid #eee;
+    padding: 20px 0;
+    overflow-y: auto;
+}
+
+.profile {
+    padding: 0 20px 20px 20px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 15px;
+}
+
+.profile h3 {
+    margin: 0 0 5px 0;
+    color: #00796b;
+}
+
+.uid-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #777;
+    margin-bottom: 10px;
+}
+
+.sidebar-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #555;
+    padding: 5px 20px;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.user-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background-color 0.2s, border-left-color 0.2s;
+    font-weight: 500;
+}
+
+.user-item:hover {
+    background-color: #eceff1;
+}
+
+/* AKTİF KULLANICI STİLİ */
+.user-item.active {
+    background-color: #e0f2f1; /* Hafif Turkuaz arka plan */
+    border-left-color: #00796b; /* Koyu Turkuaz çizgi */
+    font-weight: 600;
+    color: #00796b;
+}
+
+
+/* Sağ Panel (Chat Area) */
+.chat-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 .header {
     background-color: #00796b;
     color: white;
     padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-shrink: 0;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
@@ -123,26 +185,13 @@ button:last-of-type:hover { background-color: #388e3c; }
     font-size: 1.5rem;
 }
 
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.user-id {
-    font-size: 0.75rem;
-    padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-}
-
 /* Mesajlar Alanı */
 .messages-container {
     flex-grow: 1;
     padding: 20px;
     overflow-y: auto;
     /* Yapabildiğin en iyi arka plan */
-    background: url('https://placehold.co/800x600/f0f0f0/666666?text=Chat+Background') no-repeat center center fixed;
+    background: url('https://placehold.co/800x600/f0f0f0/666666?text=Chat+Background') no-repeat center center;
     background-size: cover;
     background-color: #fafafa;
     display: flex;
@@ -152,10 +201,9 @@ button:last-of-type:hover { background-color: #388e3c; }
 
 /* Mesaj Baloncuğu Ortak Stil */
 .message {
-    max-width: 80%;
+    max-width: 65%; /* Daha dar balonlar */
     padding: 10px 14px;
     border-radius: 18px;
-    position: relative;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
 }
 
@@ -183,9 +231,9 @@ button:last-of-type:hover { background-color: #388e3c; }
 /* Benim Mesajım */
 .message.mine {
     align-self: flex-end;
-    background-color: #00796b; /* Benim mesajım (Turkuaz) */
+    background-color: #00796b; 
     color: white;
-    border-bottom-right-radius: 4px; /* Köşeyi sivrileştir */
+    border-bottom-right-radius: 4px;
 }
 
 .message.mine .sender {
@@ -200,13 +248,13 @@ button:last-of-type:hover { background-color: #388e3c; }
 /* Diğer Kullanıcının Mesajı */
 .message.other {
     align-self: flex-start;
-    background-color: #e0e0e0; /* Diğerinin mesajı (Açık Gri) */
+    background-color: #e0e0e0;
     color: #333;
-    border-bottom-left-radius: 4px; /* Köşeyi sivrileştir */
+    border-bottom-left-radius: 4px; 
 }
 
 .message.other .sender {
-    color: #00796b; /* Koyu Turkuaz */
+    color: #00796b;
 }
 
 /* Mesaj Giriş Alanı */
@@ -215,6 +263,7 @@ button:last-of-type:hover { background-color: #388e3c; }
     padding: 10px 20px;
     background-color: #f5f5f5;
     border-top: 1px solid #eee;
+    flex-shrink: 0;
 }
 
 #message-input {
@@ -238,21 +287,61 @@ button:last-of-type:hover { background-color: #388e3c; }
 
 /* Responsive Düzenlemeler */
 @media (max-width: 768px) {
-    .chat-wrapper {
-        height: 100vh;
+    .app-container {
+        flex-direction: column;
+        max-width: 100%;
         border-radius: 0;
-        margin: 0;
+    }
+    
+    .sidebar {
+        width: 100%;
+        height: 100px;
+        border-right: none;
+        border-bottom: 1px solid #eee;
+        padding: 0;
+        overflow-y: hidden;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .profile {
+        display: none; /* Mobil profili gizle, sadece logout butonu gösterilebilir */
+    }
+
+    .sidebar-title {
+        display: none; /* Mobil başlıkları gizle */
+    }
+    
+    .user-list {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        height: 100%;
+        align-items: center;
+        padding: 0 10px;
+    }
+    
+    .user-item {
+        flex-shrink: 0;
+        padding: 8px 15px;
+        margin: 5px;
+        border-radius: 8px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        font-size: 0.9rem;
+    }
+    
+    .user-item.active {
+        border-left-color: transparent;
+        border-bottom-color: #00796b;
+    }
+
+    .chat-area {
+        height: calc(100vh - 100px); /* Sidebar yüksekliğini çıkar */
     }
     
     .message.mine, .message.other {
         max-width: 90%;
-    }
-    
-    .header {
-        padding: 15px 10px;
-    }
-
-    .user-id {
-        display: none; /* Mobil ekranda ID'yi gizle */
     }
 }
