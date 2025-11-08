@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Süper Mesajlaşma Uygulaması</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    </head>
+<body>
+    <div id="app-container">
+        
+        <div id="auth-screen" class="screen active">
+            <h2>Giriş Yap / Kayıt Ol</h2>
+            <form id="auth-form">
+                <input type="email" id="email" placeholder="E-posta" required>
+                <input type="password" id="password" placeholder="Şifre" required>
+                
+                <input type="text" id="username" placeholder="Kullanıcı Adı (Başkasının Alamayacağı)" style="display:none;">
+                
+                <button type="submit" id="auth-button">Giriş Yap</button>
+                <p>
+                    Hesabın yok mu? <a href="#" id="toggle-register">Kayıt Ol</a>
+                </p>
+            </form>
+            <p id="auth-error" class="error-message"></p>
+        </div>
+
+        <div id="chat-screen" class="screen">
+            <header>
+                <h1>Genel Sohbet</h1>
+                <div class="user-info">
+                    <span id="current-user-info"></span>
+                    <button id="logout-button">Çıkış Yap</button>
+                </div>
+            </header>
+            
+            <div id="message-container">
+                </div>
+            
+            <div id="private-chat-area">
+                <h3>Özel Sohbet</h3>
+                <input type="text" id="private-user-id" placeholder="Özel Sohbet Kullanıcı ID'si">
+                <button id="start-private-chat">Sohbeti Başlat</button>
+                
+                <div id="private-messages" class="chat-area">
+                    </div>
+            </div>
+
+            <form id="message-form" class="chat-input">
+                <input type="text" id="message-input" placeholder="Bir mesaj yaz..." autocomplete="off" required>
+                <button type="submit">Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+/* Genel Ayarlar ve Sıfırlama */
+:root {
+    --primary-color: #4a90e2; /* Mavi - Vurgu Rengi */
+    --secondary-color: #3f7bbf; /* Koyu Mavi */
+    --background-color: #f4f7f6; /* Açık Gri - Uygulama Arka Planı */
+    --chat-bg-color: #ffffff; /* Beyaz - Sohbet Alanı Arka Planı */
+    --message-self-bg: #dcf8c6; /* Açık Yeşil - Kendi Mesajlarım */
+    --message-other-bg: #ffffff; /* Beyaz - Diğerlerinin Mesajları */
+    --text-color: #333333;
+    --border-radius: 8px;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); /* Dinamik Arka Plan */
+    color: var(--text-color);
+}
+
+#app-container {
+    width: 90%;
+    max-width: 800px;
+    min-height: 600px;
+    background-color: var(--background-color);
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ekran Geçişleri */
+.screen {
+    padding: 20px;
+    display: none;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* Giriş / Kayıt Ekranı (Auth) */
+#auth-screen {
+    justify-content: center;
+    align-items: center;
+    background-color: var(--chat-bg-color);
+}
+
+#auth-form {
+    width: 100%;
+    max-width: 350px;
+    padding: 30px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    background: #f9f9f9;
+}
+
+#auth-screen h2 {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+#auth-form input[type="email"],
+#auth-form input[type="password"],
+#auth-form input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: var(--border-radius);
+    font-size: 16px;
+}
+
+#auth-button {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#auth-button:hover {
+    background-color: var(--secondary-color);
+}
+
+#auth-screen p {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.error-message {
+    color: #ff4d4f;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+/* Mesajlaşma Ekranı (Chat) */
+#chat-screen {
+    padding: 0;
+}
+
+#chat-screen header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#chat-screen header h1 {
+    font-size: 20px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+#logout-button {
+    background: none;
+    color: white;
+    border: 1px solid white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: background-color 0.3s;
+}
+
+#logout-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+#message-container {
+    padding: 10px 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: var(--chat-bg-color);
+    border-bottom: 1px solid #eee;
+    height: 300px; /* Genel sohbet için yükseklik */
+}
+
+/* Mesaj Stili */
+.message {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.message-content {
+    padding: 8px 12px;
+    border-radius: 18px;
+    max-width: 70%;
+    line-height: 1.4;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.message.self {
+    align-items: flex-end;
+}
+
+.message.self .message-content {
+    background-color: var(--message-self-bg);
+    color: var(--text-color);
+    border-bottom-right-radius: 2px;
+}
+
+.message.other {
+    align-items: flex-start;
+}
+
+.message.other .message-content {
+    background-color: var(--message-other-bg);
+    color: var(--text-color);
+    border: 1px solid #eee;
+    border-bottom-left-radius: 2px;
+}
+
+.message-author {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 2px;
+    color: var(--secondary-color);
+}
+
+.message.self .message-author {
+    color: #4CAF50; /* Kendi mesajın yazar rengi */
+}
+
+/* Mesaj Giriş Alanı */
+.chat-input {
+    display: flex;
+    padding: 10px 20px;
+    border-top: 1px solid #eee;
+    background-color: white;
+}
+
+.chat-input input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+.chat-input button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.chat-input button:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Özel Sohbet Alanı */
+#private-chat-area {
+    padding: 10px 20px;
+    background-color: #e9ecef;
+    border-top: 1px solid #ccc;
+}
+
+#private-chat-area h3 {
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+#private-chat-area input[type="text"],
+#private-chat-area button {
+    padding: 8px;
+    margin-right: 5px;
+    border-radius: var(--border-radius);
+    border: 1px solid #ccc;
+}
+
+#start-private-chat {
+    background-color: var(--secondary-color);
+    color: white;
+    cursor: pointer;
+}
+
+#private-messages {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: white;
+    margin-top: 10px;
+    border-radius: var(--border-radius);
+    border: 1px solid #ddd;
+}
