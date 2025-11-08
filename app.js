@@ -59,24 +59,19 @@ function switchScreen(screenId) {
 
 // Giriş/Kayıt formunu değiştirme işlevi (DÜZELTİLMİŞ KISIM)
 toggleRegister.addEventListener('click', (e) => {
-    e.preventDefault(); // Sayfanın yeniden yüklenmesini kesinlikle engelle
+    e.preventDefault(); 
     
     isRegistering = !isRegistering;
-    authError.textContent = ''; // Hata mesajını temizle
+    authError.textContent = ''; 
 
     if (isRegistering) {
         authButton.textContent = 'Kayıt Ol';
         toggleRegister.textContent = 'Giriş Yap';
-        // Kullanıcı Adı inputunu görünür yap
         usernameInput.style.display = 'block'; 
-        // HTML'deki `toggle-register` elemanının metnini güncelleyelim
-        document.getElementById('toggle-register').textContent = 'Giriş Yap'; 
     } else {
         authButton.textContent = 'Giriş Yap';
         toggleRegister.textContent = 'Kayıt Ol';
-        // Kullanıcı Adı inputunu gizle
         usernameInput.style.display = 'none'; 
-        document.getElementById('toggle-register').textContent = 'Kayıt Ol';
     }
 });
 
@@ -98,7 +93,6 @@ authForm.addEventListener('submit', async (e) => {
             }
             
             // Kullanıcı adı benzersizlik kontrolü (Firestore)
-            // Kullanıcı adlarını küçük harfle kaydediyoruz.
             const usernameRef = db.collection('usernames').doc(username.toLowerCase());
             const doc = await usernameRef.get();
             
@@ -152,7 +146,6 @@ auth.onAuthStateChanged(user => {
     if (user) {
         // Kullanıcı Giriş Yaptı
         currentUsername = user.displayName || user.email.split('@')[0];
-        // Kullanıcının UID'sini görünür ve kolay kopyalanabilir yapıyoruz.
         currentUserInfo.innerHTML = `Hoş Geldin, **${currentUsername}**! ID: <span style="font-weight: bold; color: yellow;">${user.uid}</span>`;
         switchScreen('chat-screen');
         
@@ -279,7 +272,6 @@ startPrivateChatButton.addEventListener('click', async () => {
     }
 
     // Hedef kullanıcının varlığını kontrol et ve kullanıcı adını al
-    // Kullanıcı adını 'usernames' koleksiyonundaki UID'ye göre arıyoruz
     const targetUserDoc = await db.collection('usernames').where('uid', '==', targetUid).limit(1).get();
     
     if (targetUserDoc.empty) {
@@ -287,7 +279,6 @@ startPrivateChatButton.addEventListener('click', async () => {
         return;
     }
     
-    // Kullanıcı adı dokümanın ID'sidir (username.toLowerCase() olarak kaydedilmişti)
     const targetUsername = targetUserDoc.docs[0].id; 
 
     // Chat ID oluştur ve özel sohbeti başlat
@@ -318,13 +309,15 @@ function listenForPrivateMessages(chatId) {
       .limit(50)
       .onSnapshot(snapshot => {
         // Sadece mesajları temizle, başlık kalsın
-        const existingMessages = privateMessagesContainer.querySelectorAll('.message');
-        // Başlık (h3) elemanını koruyarak eski mesajları temizle
-        existingMessages.forEach(msg => {
-            if (!msg.parentElement.querySelector('h3')) {
-                msg.remove();
+        const header = privateMessagesContainer.querySelector('h3');
+        // Mesaj elementlerini bul ve sil
+        let messagesToRemove = [];
+        privateMessagesContainer.childNodes.forEach(node => {
+            if (node.nodeType === 1 && node.classList.contains('message')) {
+                messagesToRemove.push(node);
             }
         });
+        messagesToRemove.forEach(msg => msg.remove());
 
         snapshot.docChanges().forEach(change => {
             if (change.type === "added") {
