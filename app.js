@@ -1,5 +1,4 @@
 // 1. Firebase Yapılandırması (Senden Gelen Config)
-
 const firebaseConfig = {
     apiKey: "AIzaSyBWz7yk3t5ouT2ivuHNm4LEIVDBrWsRucc",
     authDomain: "mesajlasma-d6f4f.firebaseapp.com",
@@ -17,7 +16,7 @@ const db = app.firestore();
 
 // 3. DOM Elemanları
 const authScreen = document.getElementById('auth-screen');
-const chatApplication = document.getElementById('chat-application'); // Yeni ana uygulama kapsayıcısı
+const chatApplication = document.getElementById('chat-application');
 const toggleRegister = document.getElementById('toggle-register');
 const authForm = document.getElementById('auth-form');
 const authButton = document.getElementById('auth-button');
@@ -29,17 +28,16 @@ const currentUserInfo = document.getElementById('current-user-info');
 // Sohbet Elemanları
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
-const messageContainer = document.getElementById('message-container'); // Genel Sohbet Alanı
-const privateMessagesContainer = document.getElementById('private-messages'); // Özel Sohbet Alanı
-const chatTitle = document.getElementById('chat-title'); // Sohbet Başlığı
+const messageContainer = document.getElementById('message-container');
+const privateMessagesContainer = document.getElementById('private-messages');
+const chatTitle = document.getElementById('chat-title');
 
 // Menü Elemanları
-const sidebar = document.getElementById('sidebar');
 const tabGeneral = document.getElementById('tab-general');
 const tabOnline = document.getElementById('tab-online');
-const tabPrivateList = document.getElementById('tab-private-list');
+const tabPrivateInit = document.getElementById('tab-private-init');
 const onlineUsersList = document.getElementById('online-users-list');
-const privateChatInit = document.getElementById('private-chat-init'); // Özel sohbet başlatma alanı
+const privateChatInit = document.getElementById('private-chat-init');
 const startPrivateChatButton = document.getElementById('start-private-chat');
 const privateUserIdInput = document.getElementById('private-user-id');
 
@@ -68,19 +66,26 @@ function switchScreen(screenId) {
 
 // Menü sekmesi ve içeriği değiştirme
 function switchTab(tabId) {
-    // 1. Butonları Güncelle
     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
 
-    // 2. İçerikleri Güncelle
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
-    let contentId;
-    if (tabId === 'tab-general') contentId = 'online-users-list'; // Geçici olarak online listeyi gösterelim
-    if (tabId === 'tab-online') contentId = 'online-users-list'; 
-    if (tabId === 'tab-private-list') contentId = 'private-chat-init'; // Şimdilik özel sohbet başlatma alanını gösterelim
-
-    document.getElementById(contentId).classList.add('active');
+    let contentElement;
+    if (tabId === 'tab-general' || tabId === 'tab-online') {
+        contentElement = onlineUsersList;
+    } else if (tabId === 'tab-private-init') {
+        contentElement = privateChatInit;
+    }
+    
+    if (contentElement) {
+        contentElement.classList.add('active');
+    }
+    
+    // Genel sohbete otomatik geçiş
+    if (tabId === 'tab-general') {
+        switchChatArea('general');
+    }
 }
 
 // Sohbet Alanı Değiştirme (Genel / Özel)
@@ -91,24 +96,21 @@ function switchChatArea(area) {
     if (area === 'general') {
         messageContainer.classList.add('active');
         chatTitle.textContent = 'Genel Sohbet';
-        // Özel sohbet dinleyicisini kapat
-        if (privateChatListener) privateChatListener();
-        activePrivateChat = { chatId: null, targetUid: null, targetUsername: null };
+        // Dinleyicileri yönet
+        if (privateChatListener) privateChatListener(); // Özel sohbeti durdur
     } else if (area === 'private' && activePrivateChat.chatId) {
         privateMessagesContainer.classList.add('active');
         chatTitle.textContent = `Özel Sohbet: ${activePrivateChat.targetUsername}`;
-        // Özel sohbeti yeniden dinlemeye başla
-        listenForPrivateMessages(activePrivateChat.chatId);
+        // Dinleyicileri yönet
+        if (currentChatListener) listenForMessages(); // Genel sohbeti durdur
+        listenForPrivateMessages(activePrivateChat.chatId); // Özel sohbeti başlat
     }
 }
 
 // Menü Butonlarına Dinleyici Ekleme
-tabGeneral.addEventListener('click', () => {
-    switchTab('tab-general');
-    switchChatArea('general');
-});
+tabGeneral.addEventListener('click', () => switchTab('tab-general'));
 tabOnline.addEventListener('click', () => switchTab('tab-online'));
-tabPrivateList.addEventListener('click', () => switchTab('tab-private-list'));
+tabPrivateInit.addEventListener('click', () => switchTab('tab-private-init'));
 
 
 // Giriş/Kayıt formunu değiştirme işlevi
@@ -130,7 +132,69 @@ toggleRegister.addEventListener('click', (e) => {
 });
 
 
-// 5. KİMLİK DOĞRULAMA (AUTH) İŞLEMLERİ VE OTURUM YÖNETİMİ
+// 5. KİMLİK DOĞRULAMA (AUTH) İŞLEMLERİ 
+authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authError.textContent = '';
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const username = usernameInput.value;
+
+    try {
+        if (isRegistering) {
+            // KAYIT OLMA İŞLEMİ
+            if (!username) {
+                authError.textContent = 'Lütfen bir kullanıcı adı girin.';
+                return;
+            }
+            
+            // Kullanıcı adı benzersizlik kontrolü (Firestore)
+            const usernameRef = db.collection('usernames').doc(username.toLowerCase());
+            const doc = await usernameRef.get();
+            
+            if (doc.exists) {
+                authError.textContent = `Kullanıcı adı (${username}) zaten alınmış.`;
+                return;
+            }
+
+            // --- Gerçek Kayıt İşlemi ---
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            // Kullanıcı adını veritabanına kaydet
+            await usernameRef.set({ 
+                uid: user.uid,
+                email: email,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Kullanıcının profilini güncelle (displayName)
+            await user.updateProfile({
+                displayName: username
+            });
+            // onAuthStateChanged otomatik olarak tetiklenir
+
+        } else {
+            // GİRİŞ YAPMA İŞLEMİ
+            await auth.signInWithEmailAndPassword(email, password);
+        }
+    } catch (error) {
+        console.error('Auth Hatası:', error);
+        if (error.code === 'auth/weak-password') {
+             authError.textContent = 'Şifre en az 6 karakter olmalıdır.';
+        } else if (error.code === 'auth/email-already-in-use') {
+             authError.textContent = 'Bu e-posta adresi zaten kayıtlı.';
+        } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+             authError.textContent = 'E-posta veya şifre hatalı.';
+        } else if (error.code === 'auth/invalid-email') {
+             authError.textContent = 'Geçersiz e-posta formatı.';
+        } else {
+             authError.textContent = 'İşlem sırasında bir hata oluştu: ' + error.message;
+        }
+    }
+});
+
 
 // Oturum Durumu Kontrolü
 auth.onAuthStateChanged(user => {
@@ -148,6 +212,7 @@ auth.onAuthStateChanged(user => {
         listenForMessages();
         handleOnlineStatus(true); // Çevrimiçi Durumunu Kaydet
         listenForOnlineUsers(); // Çevrimiçi Kullanıcıları Dinle
+        switchTab('tab-online'); // Başlangıçta çevrimiçi listesini göster
         switchChatArea('general'); // Başlangıçta genel sohbete geç
 
     } else {
@@ -155,23 +220,21 @@ auth.onAuthStateChanged(user => {
         handleOnlineStatus(false); // Çevrimdışı Durumunu Kaydet
         currentUsername = null;
         switchScreen('auth-screen');
-        messageContainer.innerHTML = '';
-        privateMessagesContainer.innerHTML = '';
-        activePrivateChat = { chatId: null, targetUid: null, targetUsername: null };
         
         // Dinleyicileri temizle
         if (currentChatListener) currentChatListener();
         if (privateChatListener) privateChatListener();
         if (onlineUsersListener) onlineUsersListener();
+        
+        // Arayüzü temizle
+        messageContainer.innerHTML = '';
+        privateMessagesContainer.innerHTML = '<p style="text-align: center; color: #aaa; padding: 20px;">Henüz aktif bir özel sohbet yok. Lütfen bir kullanıcı seçin.</p>';
+        activePrivateChat = { chatId: null, targetUid: null, targetUsername: null };
     }
 });
 
-// Çıkış Yapma
-logoutButton.addEventListener('click', () => {
-    auth.signOut();
-});
 
-// 6. ÇEVRİMİÇİ DURUMU YÖNETİMİ
+// 6. ÇEVRİMİÇİ DURUMU YÖNETİMİ 
 
 // Kullanıcının çevrimiçi durumunu kaydet/sil
 async function handleOnlineStatus(isOnline) {
@@ -181,23 +244,35 @@ async function handleOnlineStatus(isOnline) {
     const onlineRef = db.collection('online_users').doc(user.uid);
     
     if (isOnline) {
-        await onlineRef.set({
-            uid: user.uid,
-            username: user.displayName || user.email.split('@')[0],
-            last_seen: firebase.firestore.FieldValue.serverTimestamp(),
-        });
+        try {
+            await onlineRef.set({
+                uid: user.uid,
+                username: user.displayName || user.email.split('@')[0],
+                last_seen: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+        } catch (e) {
+            console.error("Çevrimiçi durumu ayarlanamadı:", e);
+        }
     } else {
         // Oturum kapandığında kaydı sil
-        await onlineRef.delete();
+        try {
+            await onlineRef.delete();
+        } catch (e) {
+             console.error("Çevrimdışı durumu ayarlanamadı:", e);
+        }
     }
 }
 
 // Çevrimiçi Kullanıcıları Dinleme
 function listenForOnlineUsers() {
+    if (onlineUsersListener) onlineUsersListener(); 
+
     onlineUsersListener = db.collection('online_users')
         .onSnapshot(snapshot => {
             onlineUsersList.innerHTML = '';
-            const currentUid = auth.currentUser.uid;
+            const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+
+            if (!currentUid) return;
 
             snapshot.forEach(doc => {
                 const user = doc.data();
@@ -206,9 +281,12 @@ function listenForOnlineUsers() {
                 }
             });
             
-            if (onlineUsersList.innerHTML === '') {
+            if (onlineUsersList.children.length === 0) {
                  onlineUsersList.innerHTML = '<p style="padding: 10px; color: #aaa;">Sizden başka çevrimiçi kimse yok.</p>';
             }
+        }, error => {
+            console.error("Çevrimiçi kullanıcıları dinleme hatası:", error);
+            onlineUsersList.innerHTML = '<p style="padding: 10px; color: red;">Kullanıcı listesi yüklenemedi.</p>';
         });
 }
 
@@ -216,7 +294,6 @@ function listenForOnlineUsers() {
 function displayOnlineUser(user) {
     const item = document.createElement('div');
     item.classList.add('online-user-item');
-    item.dataset.uid = user.uid; // ID'yi veri özelliğine sakla
 
     item.innerHTML = `
         <span>${user.username}</span>
@@ -232,21 +309,18 @@ function displayOnlineUser(user) {
 }
 
 function startPrivateChatFromMenu(uid, username) {
+    if (!auth.currentUser) return alert("Önce giriş yapmalısınız.");
+    
     activePrivateChat.targetUid = uid;
     activePrivateChat.targetUsername = username;
     activePrivateChat.chatId = getChatId(uid);
     
-    if (privateChatListener) privateChatListener(); // Eski dinleyiciyi kapat
-    
-    listenForPrivateMessages(activePrivateChat.chatId);
-    
-    switchChatArea('private'); // Özel sohbet alanına geç
-    
-    // Geri bildirim ver
-    alert(`Özel sohbet başlatıldı: ${username} ile konuşuyorsunuz.`);
+    // Sohbete geçiş
+    switchChatArea('private'); 
 }
 
-// 7. MESAJLAŞMA İŞLEVLERİ (GENEL VE ÖZEL)
+
+// 7. MESAJLAŞMA İŞLEVLERİ
 
 // Chat ID oluşturma
 function getChatId(targetUid) {
@@ -284,17 +358,19 @@ async function sendGeneralMessage(text) {
         });
     } catch (error) {
         console.error('Genel mesaj gönderme hatası:', error);
-        alert('Genel mesaj gönderilemedi.');
     }
 }
 
 // Genel mesajları dinleme
 function listenForMessages() {
+    // Önceki dinleyiciyi kapat
+    if (currentChatListener) currentChatListener();
+
     currentChatListener = db.collection('messages')
       .orderBy('timestamp', 'asc')
       .limit(50)
       .onSnapshot(snapshot => {
-        // Sadece genel sohbet aktifse DOM'u güncelle
+        // Sadece genel sohbet aktifse veya ilk yükleniyorsa güncelleyin
         if (activeChat === 'general') {
             messageContainer.innerHTML = '';
             snapshot.forEach(doc => {
@@ -320,13 +396,12 @@ async function sendPrivateMessage(text) {
             });
     } catch (error) {
         console.error('Özel mesaj gönderme hatası:', error);
-        alert('Özel mesaj gönderilemedi.');
     }
 }
 
 // Özel mesajları dinleme
 function listenForPrivateMessages(chatId) {
-    // Önceki dinleyiciyi temizle
+    // Dinleyiciyi durdur
     if (privateChatListener) privateChatListener();
     
     privateMessagesContainer.innerHTML = ''; // Temizle
@@ -374,3 +449,13 @@ function displayMessage(message, container, isPrivate = false) {
 
     container.appendChild(messageElement);
 }
+
+// Çıkış Yapma İşlevi
+logoutButton.addEventListener('click', () => {
+    auth.signOut();
+});
+
+// Otomatik başlatma: Eğer başlangıçta kullanıcı varsa veya giriş ekranındaysak
+document.addEventListener('DOMContentLoaded', () => {
+    // Başlangıçta Auth durumu onAuthStateChanged tarafından halledilir.
+});
