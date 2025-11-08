@@ -5,28 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Uygulaması</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Font Awesome Icons -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <style>
         /* Sadece Inter fontunun yüklü olduğundan emin olmak için */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=100..900&display=swap');
     </style>
 </head>
 <body>
 
-    <!-- Ana Kapsayıcı -->
     <div id="app-container">
 
-        <!-- SOL MENÜ (Sidebar) -->
         <aside id="sidebar">
             
-            <!-- Giriş/Kayıt Ekranı (Sadece Oturum Açılmamışsa Görünür) -->
-            <!-- NOT: Bu ekranın yerini #auth-screen alıyor. Bu HTML bloğu kaldırıldı. -->
-
-            <!-- Oturum Açıldığında Görünen Sohbet Menüsü -->
             <div id="chat-menu" class="hidden">
-                 <!-- Sekme Butonları -->
-                <div id="menu-tabs">
+                 <div id="menu-tabs">
                     <button class="tab-button" id="tab-general">
                         <i class="fas fa-comments"></i> Genel Sohbet
                     </button>
@@ -38,9 +30,7 @@
                     </button>
                 </div>
 
-                <!-- Sekme İçerikleri (Sadece biri aktif olacak) -->
                 <div id="online-users-list" class="tab-content active">
-                    <!-- Çevrimiçi kullanıcılar buraya JS ile eklenecek -->
                     <p style="padding: 10px; color: #aaa;">Kullanıcılar yükleniyor...</p>
                 </div>
                 
@@ -52,17 +42,14 @@
                 </div>
             </div>
 
-            <!-- Oturum Açılmadığında Görünen Boş Durum -->
             <div id="sidebar-auth-placeholder" class="active-on-logout" style="padding: 20px; text-align: center;">
                 <p style="color: #aaa;">Giriş yapıldığında sohbet menüsü burada görünecektir.</p>
             </div>
             
         </aside>
         
-        <!-- SAĞ EKRAN KAPSAYICISI -->
         <main id="main-content-area">
 
-            <!-- 1. Giriş/Kayıt Ekranı -->
             <div id="auth-screen" class="screen active">
                 <div id="auth-screen-card">
                     <h2>Giriş Yap / Kayıt Ol</h2>
@@ -77,10 +64,8 @@
                 </div>
             </div>
 
-            <!-- 2. Sohbet Uygulaması Ekranı -->
             <div id="chat-application" class="screen">
                 
-                <!-- Başlık Alanı -->
                 <header>
                     <h3 id="chat-title">Genel Sohbet</h3>
                     <div class="user-info">
@@ -89,24 +74,18 @@
                     </div>
                 </header>
 
-                <!-- Mesaj Alanı -->
                 <div id="messages-area">
                     
-                    <!-- Genel Sohbet Alanı -->
                     <div id="message-container" class="chat-area active">
-                        <!-- Mesajlar JS ile buraya eklenecek -->
                         <p style="text-align: center; color: #aaa; padding: 20px;">Sohbet geçmişi yükleniyor...</p>
                     </div>
 
-                    <!-- Özel Sohbet Alanı -->
                     <div id="private-messages" class="chat-area">
-                        <!-- Özel mesajlar buraya eklenecek -->
                         <p style="text-align: center; color: #aaa; padding: 20px;">Henüz aktif bir özel sohbet yok. Lütfen sol menüden bir kullanıcı seçin.</p>
                     </div>
 
                 </div>
 
-                <!-- Mesaj Giriş Alanı -->
                 <form id="message-form" class="chat-input">
                     <input type="text" id="message-input" placeholder="Bir mesaj yaz..." autocomplete="off" required>
                     <button type="submit">Gönder</button>
@@ -118,12 +97,10 @@
         
     </div>
 
-    <!-- Firebase SDK'ları -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     
-    <!-- Uygulama JavaScript Dosyası -->
     <script src="app.js"></script>
 </body>
 </html>
