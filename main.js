@@ -16,76 +16,101 @@ const auth = firebase.auth();
 const db = firebase.firestore(); 
 
 // Global Stateler
-let currentChatUserId = null; // Özel sohbetteki diğer kişinin ID'si
-let currentChatUsername = null; // Özel sohbetteki diğer kişinin kullanıcı adı
-let currentChatType = 'general'; // Mevcut sohbet türü ('general' veya 'private')
-let unsubscribeChatListener = null; // Sohbet dinleyicisini durdurmak için
-let loggedInUserId = null; // Giriş yapmış kullanıcının ID'si
-let loggedInUsername = null; // Giriş yapmış kullanıcının Kullanıcı Adı
+let currentChatUserId = null; 
+let currentChatUsername = null; 
+let currentChatType = 'general'; 
+let unsubscribeChatListener = null; 
+let loggedInUserId = null; 
+let loggedInUsername = null; 
 
 const body = document.body;
 
-// Element referanslarını güncelleme fonksiyonu (onAuthStateChanged sonrası DOM değişimi için)
-function updateAuthElements() {
-    window.emailInput = document.getElementById('email');
-    window.passwordInput = document.getElementById('password');
-    window.usernameInput = document.getElementById('username');
-    window.authForm = document.getElementById('auth-form');
-    window.authMessage = document.getElementById('auth-message');
-}
+// Auth Sayfası Form Yönetimi
+function showForm(formType) {
+    const signInContainer = document.getElementById('signin-form-container');
+    const signUpContainer = document.getElementById('signup-form-container');
+    const authMessage = document.getElementById('auth-message');
+    authMessage.textContent = ''; // Hata mesajını temizle
 
-// Global olarak çağrılacak Auth fonksiyonu
-async function handleAuth(isSignIn) {
-    const email = window.emailInput.value;
-    const password = window.passwordInput.value;
-    const username = window.usernameInput.value;
-    window.authMessage.textContent = ''; 
-
-    try {
-        if (isSignIn) {
-            await auth.signInWithEmailAndPassword(email, password);
-        } else {
-            if (!username) {
-                window.authMessage.textContent = "Kayıt olurken kullanıcı adı zorunludur.";
-                return;
-            }
-            
-            // Kullanıcı adının daha önce alınıp alınmadığını kontrol et
-            const userCheck = await db.collection('users').where('username', '==', username).get();
-            if (!userCheck.empty) {
-                window.authMessage.textContent = "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane seçin.";
-                return;
-            }
-
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            const user = userCredential.user;
-
-            // Kullanıcı adını Firestore'a kaydet (DM için ID/Kullanıcı adı)
-            await db.collection('users').doc(user.uid).set({
-                email: user.email,
-                username: username,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            window.authMessage.textContent = "Başarıyla kaydoldun! Sohbet ekranına geçiliyor...";
-        }
-    } catch (error) {
-        console.error("Kimlik Doğrulama Hatası:", error);
-        let errorMessage = "Bir hata oluştu.";
-        if (error.code === 'auth/email-already-in-use') errorMessage = "Bu e-posta zaten kullanılıyor.";
-        else if (error.code === 'auth/weak-password') errorMessage = "Şifre en az 6 karakter olmalıdır.";
-        else if (error.code === 'auth/invalid-email' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') errorMessage = "Giriş bilgileri hatalı.";
-        window.authMessage.textContent = errorMessage;
+    if (formType === 'signin') {
+        signInContainer.classList.remove('hidden');
+        signUpContainer.classList.add('hidden');
+        document.getElementById('auth-info-text').textContent = 'Devam etmek için e-posta ve şifre ile giriş yapın.';
+    } else {
+        signInContainer.classList.add('hidden');
+        signUpContainer.classList.remove('hidden');
+        document.getElementById('auth-info-text').textContent = 'Kayıt olmak için lütfen kullanıcı adı, e-posta ve şifre girin.';
     }
 }
 
-// Auth durumunu dinle
+// Giriş İşlemi
+async function handleSignin() {
+    const email = document.getElementById('signin-email').value;
+    const password = document.getElementById('signin-password').value;
+    const authMessage = document.getElementById('auth-message');
+    authMessage.textContent = '';
+
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+        console.error("Giriş Hatası:", error);
+        let errorMessage = "Giriş bilgileri hatalı.";
+        if (error.code === 'auth/invalid-email') errorMessage = "Geçersiz e-posta formatı.";
+        else if (error.code === 'auth/user-not-found') errorMessage = "Bu e-posta kayıtlı değil.";
+        authMessage.textContent = errorMessage;
+    }
+}
+
+// Kayıt İşlemi (Kullanıcı Adı Zorunlu Kontrolü)
+async function handleSignup() {
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const username = document.getElementById('signup-username').value.trim();
+    const authMessage = document.getElementById('auth-message');
+    authMessage.textContent = ''; 
+
+    if (!username) {
+        authMessage.textContent = "Kayıt olurken kullanıcı adı zorunludur.";
+        return;
+    }
+
+    try {
+        // Kullanıcı adının daha önce alınıp alınmadığını kontrol et
+        const userCheck = await db.collection('users').where('username', '==', username).get();
+        if (!userCheck.empty) {
+            authMessage.textContent = "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane seçin.";
+            return;
+        }
+
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // Kullanıcı adını Firestore'a kaydet
+        await db.collection('users').doc(user.uid).set({
+            email: user.email,
+            username: username,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        authMessage.textContent = "Başarıyla kaydoldun! Sohbet ekranına geçiliyor...";
+    } catch (error) {
+        console.error("Kayıt Hatası:", error);
+        let errorMessage = "Bir hata oluştu.";
+        if (error.code === 'auth/email-already-in-use') errorMessage = "Bu e-posta zaten kullanılıyor.";
+        else if (error.code === 'auth/weak-password') errorMessage = "Şifre en az 6 karakter olmalıdır.";
+        else if (error.code === 'auth/invalid-email') errorMessage = "Geçersiz e-posta formatı.";
+        authMessage.textContent = errorMessage;
+    }
+}
+
+// Auth durumunu dinle (Bu kısım aynı kaldı)
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         // Kullanıcı giriş yapmış.
         const userDoc = await db.collection('users').doc(user.uid).get();
         loggedInUserId = user.uid;
-        loggedInUsername = userDoc.data()?.username || user.email;
+        // Kullanıcı adı Firestore'dan çekiliyor.
+        loggedInUsername = userDoc.data()?.username || user.email; 
 
         body.innerHTML = ''; 
         body.classList.remove('auth-page'); 
@@ -100,47 +125,52 @@ auth.onAuthStateChanged(async (user) => {
              unsubscribeChatListener = null;
         }
         
+        // Uygulama yüklenirken varsayılan olarak Giriş sayfasını göster
         body.innerHTML = `
             <div class="container auth-container">
                 <h1>💬 Hoş Geldin!</h1>
-                <p>Devam etmek için e-posta ve şifre ile giriş yap veya kaydol.</p>
-                <div id="auth-form">
-                    <input type="email" id="email" placeholder="E-posta" required>
-                    <input type="password" id="password" placeholder="Şifre" required>
-                    <input type="text" id="username" placeholder="Kullanıcı Adı (Sadece Kayıt Olurken)" style="display:none;">
-                    <button onclick="handleAuth(true)">Giriş Yap</button>
-                    <button onclick="handleAuth(false)">Kaydol</button>
-                    <p id="auth-message" class="error"></p>
+                <p id="auth-info-text">Devam etmek için lütfen giriş yapın veya kaydolun.</p>
+
+                <div id="signup-form-container" class="hidden">
+                    <input type="text" id="signup-username" placeholder="Kullanıcı Adı (Zorunlu)" required>
+                    <input type="email" id="signup-email" placeholder="E-posta" required>
+                    <input type="password" id="signup-password" placeholder="Şifre" required>
+                    <button onclick="handleSignup()">Kaydol</button>
+                    <p style="margin-top: 15px;">
+                        Zaten hesabın var mı? <a href="#" onclick="showForm('signin')">Giriş Yap</a>
+                    </p>
                 </div>
+
+                <div id="signin-form-container">
+                    <input type="email" id="signin-email" placeholder="E-posta" required>
+                    <input type="password" id="signin-password" placeholder="Şifre" required>
+                    <button onclick="handleSignin()">Giriş Yap</button>
+                    <p style="margin-top: 15px;">
+                        Hesabın yok mu? <a href="#" onclick="showForm('signup')">Şimdi Kaydol</a>
+                    </p>
+                </div>
+                
+                <p id="auth-message" class="error"></p>
             </div>
         `;
         body.classList.add('auth-page');
         body.classList.remove('chat-page');
-        updateAuthElements(); 
+        showForm('signin'); // Ekranı Giriş formuyla başlat
+        
         loggedInUserId = null;
         loggedInUsername = null;
     }
 });
 
+
 // =========================================================
-// 2. ADIM: ANA UYGULAMA MANTIĞI (KULLANICI LİSTESİ + SOHBET)
+// CHAT APP MANTIĞI (Aynı kaldı)
 // =========================================================
 
-/**
- * Kullanıcı ID'lerini alfabetik sıraya göre birleştirerek özel sohbet odası ID'sini oluşturur.
- * Güvenlik kuralı da bu ID'ye dayanır.
- * @param {string} uid1 
- * @param {string} uid2 
- * @returns {string} Örneğin: "uidA_uidB"
- */
 function getPrivateChatId(uid1, uid2) {
-    // ID'leri alfabetik olarak sırala ve birleştir
     return [uid1, uid2].sort().join('_');
 }
 
-/**
- * Kullanıcı giriş yaptıktan sonra ana sohbet arayüzünü (listeyi ve sohbet penceresini) yükler.
- */
 function loadMainApp() {
     body.innerHTML = `
         <div class="app-container">
@@ -167,7 +197,7 @@ function loadMainApp() {
                     <h2 id="chat-title">Genel Sohbet Odası 🗣️</h2>
                 </div>
                 <div id="messages-container" class="messages-container">
-                    </div>
+                </div>
                 <div class="message-input-area">
                     <input type="text" id="message-input" placeholder="Mesajınızı buraya yazın..." />
                     <button id="send-button" onclick="handleSendMessage()">Gönder</button>
@@ -176,13 +206,9 @@ function loadMainApp() {
         </div>
     `;
 
-    // Kullanıcı listesini yükle
     loadUserList(loggedInUserId);
-    
-    // Varsayılan olarak Genel Sohbeti yükle
     loadChatApp('general');
     
-    // Enter tuşu ile mesaj gönderme
     document.getElementById('message-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             handleSendMessage();
@@ -190,20 +216,16 @@ function loadMainApp() {
     });
 }
 
-/**
- * Firestore'dan tüm kullanıcıları çeker ve listeye ekler.
- */
 function loadUserList() {
     const userListElement = document.getElementById('user-list');
     
     db.collection('users').get().then((snapshot) => {
-        userListElement.innerHTML = ''; // Yükleniyor yazısını kaldır
+        userListElement.innerHTML = ''; 
         
         snapshot.forEach((doc) => {
             const user = doc.data();
             const userId = doc.id;
             
-            // Kendi adımızı listede gösterme
             if (userId === loggedInUserId) return;
 
             const userItem = document.createElement('div');
@@ -212,7 +234,6 @@ function loadUserList() {
             userItem.setAttribute('data-user-id', userId);
             userItem.setAttribute('data-username', user.username);
             
-            // Tıklandığında Özel Sohbeti yükle
             userItem.onclick = () => {
                 const username = userItem.getAttribute('data-username');
                 loadChatApp('private', userId, username);
@@ -226,30 +247,21 @@ function loadUserList() {
     });
 }
 
-/**
- * Belirli bir sohbet penceresini (Genel veya Özel) yükler ve dinlemeyi başlatır.
- * @param {string} type - 'general' veya 'private'
- * @param {string} [otherUserId] - Özel sohbet için diğer kullanıcının ID'si
- * @param {string} [otherUsername] - Özel sohbet için diğer kullanıcının kullanıcı adı
- */
 function loadChatApp(type, otherUserId = null, otherUsername = null) {
     const chatTitleElement = document.getElementById('chat-title');
     const messagesContainer = document.getElementById('messages-container');
     const userItems = document.querySelectorAll('.user-item');
 
-    // Önceki dinleyiciyi durdur
     if(unsubscribeChatListener) {
         unsubscribeChatListener();
         unsubscribeChatListener = null;
     }
 
-    // Arayüzü temizle
     messagesContainer.innerHTML = '';
     currentChatType = type;
     currentChatUserId = otherUserId;
     currentChatUsername = otherUsername;
     
-    // 1. Sidebar'daki aktif linki ayarla (UI İyileştirmesi)
     userItems.forEach(item => item.classList.remove('active'));
     
     if (type === 'general') {
@@ -263,28 +275,23 @@ function loadChatApp(type, otherUserId = null, otherUsername = null) {
         }
     }
 
-    // 2. Mesaj koleksiyonunu belirle ve dinlemeyi başlat
     let messagesCollectionRef;
     if (type === 'general') {
-        // Genel Sohbet Koleksiyonu
         messagesCollectionRef = db.collection('artifacts').doc(FIREBASE_APP_ID).collection('public').doc('data').collection('general_chat');
     } else {
-        // Özel Sohbet Koleksiyonu
         const chatId = getPrivateChatId(loggedInUserId, otherUserId);
         messagesCollectionRef = db.collection('private_chats').doc(chatId).collection('messages');
     }
 
-    // Dinleyiciyi başlat ve global değişkene kaydet
     unsubscribeChatListener = messagesCollectionRef.orderBy('createdAt', 'asc')
         .onSnapshot((snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 const message = change.doc.data();
 
-                // Sadece yeni eklenen (added) mesajları ekle
                 if (change.type === "added") {
                     const messageElement = createMessageElement(message, loggedInUserId);
                     messagesContainer.appendChild(messageElement);
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight; // Mesaj kutusunu alta kaydır
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight; 
                 }
             });
         }, (error) => {
@@ -293,12 +300,6 @@ function loadChatApp(type, otherUserId = null, otherUsername = null) {
         });
 }
 
-/**
- * Bir mesaj nesnesini DOM elementine dönüştürür.
- * @param {object} message - Mesaj verisi
- * @param {string} currentUserId - Mevcut kullanıcının ID'si
- * @returns {HTMLElement} - Oluşturulan mesaj div'i
- */
 function createMessageElement(message, currentUserId) {
     const isCurrentUser = message.userId === currentUserId;
     const div = document.createElement('div');
@@ -317,14 +318,12 @@ function createMessageElement(message, currentUserId) {
     time.classList.add('time');
     
     if (message.createdAt && message.createdAt.toDate) {
-        // Tarihi okunabilir bir formata çevir
         const date = message.createdAt.toDate();
         time.textContent = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
     } else {
         time.textContent = 'Şimdi';
     }
 
-    // Mesaj yapısını oluştur
     div.appendChild(senderName);
     div.appendChild(messageContent);
     div.appendChild(time);
@@ -332,32 +331,27 @@ function createMessageElement(message, currentUserId) {
     return div;
 }
 
-/**
- * Global state'e göre doğru sohbete mesaj gönderir.
- */
 async function handleSendMessage() {
-    if (!loggedInUserId) return; // Kullanıcı giriş yapmadıysa gönderme
+    if (!loggedInUserId) return; 
 
     const inputElement = document.getElementById('message-input');
     const text = inputElement.value.trim();
 
-    if (text === '') return; // Boş mesaj gönderme
+    if (text === '') return; 
 
     const newMessage = {
         userId: loggedInUserId,
         username: loggedInUsername,
         text: text,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp() // Sunucu saati ile zaman damgası
+        createdAt: firebase.firestore.FieldValue.serverTimestamp() 
     };
 
     let messagesCollectionRef;
 
     try {
         if (currentChatType === 'general') {
-            // Genel Sohbet
             messagesCollectionRef = db.collection('artifacts').doc(FIREBASE_APP_ID).collection('public').doc('data').collection('general_chat');
         } else if (currentChatType === 'private' && currentChatUserId) {
-            // Özel Sohbet
             const chatId = getPrivateChatId(loggedInUserId, currentChatUserId);
             messagesCollectionRef = db.collection('private_chats').doc(chatId).collection('messages');
         } else {
@@ -367,10 +361,9 @@ async function handleSendMessage() {
 
         await messagesCollectionRef.add(newMessage);
         
-        inputElement.value = ''; // Gönderdikten sonra giriş alanını temizle
+        inputElement.value = ''; 
 
     } catch (error) {
         console.error("Mesaj gönderme hatası:", error);
-        // Hata durumunda kullanıcıya gösterilebilecek bir mesaj eklenebilir.
     }
 }
