@@ -6,7 +6,6 @@
     <title>Süper Mesajlaşma Uygulaması</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- FIREBASE SDK'LARINI EKLEME -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -14,7 +13,6 @@
 <body>
     <div id="app-container">
         
-        <!-- Giriş / Kayıt Ekranı -->
         <div id="auth-screen" class="screen active">
             <h2>Giriş Yap / Kayıt Ol</h2>
             <form id="auth-form">
@@ -29,39 +27,26 @@
             <p id="auth-error" class="error-message"></p>
         </div>
 
-        <!-- Ana Uygulama (Sidebar ve Chat) -->
         <div id="chat-application" class="screen">
             
-            <!-- SOL MENÜ (SIDEBAR) -->
             <div id="sidebar">
                 <div id="menu-tabs">
-                    <button class="tab-button active" id="tab-general">Genel Sohbet</button>
-                    <button class="tab-button" id="tab-online">Çevrimiçiler</button>
-                    <button class="tab-button" id="tab-private-list">Özel Sohbet</button>
+                    <button class="tab-button" id="tab-general">Genel Sohbet</button>
+                    <button class="tab-button active" id="tab-online">Çevrimiçiler</button>
+                    <button class="tab-button" id="tab-private-init">Özel Sohbet Başlat</button>
                 </div>
 
-                <!-- Çevrimiçi Kullanıcı Listesi (Menü içeriği) -->
                 <div id="online-users-list" class="tab-content active">
-                    <!-- Çevrimiçi kullanıcılar buraya JS ile eklenecek -->
                     <p style="padding: 10px; color: #aaa;">Yükleniyor...</p>
                 </div>
                 
-                <!-- Özel Sohbet Başlatma Alanı (Menü içeriği) -->
                 <div id="private-chat-init" class="tab-content">
-                    <div style="padding: 10px;">
-                         <p style="color: #aaa; font-size: 14px; margin-bottom: 5px;">Sohbet başlatmak için hedef ID'yi girin:</p>
-                        <input type="text" id="private-user-id" placeholder="Kullanıcı ID (UID)">
-                        <button id="start-private-chat" style="width: 100%; margin-top: 10px; background-color: var(--primary-color); color: var(--bg-color); padding: 8px; border-radius: 6px; border: none; cursor: pointer;">Sohbeti Başlat</button>
-                    </div>
-                </div>
-
-                <!-- Özel Sohbet Listesi (Gelecek özellik için yer tutucu) -->
-                <div id="private-chat-list" class="tab-content">
-                    <p style="padding: 10px; color: #aaa;">Yakında: Sohbet listeniz...</p>
+                    <p style="color: #aaa; font-size: 14px; margin-bottom: 5px;">Hedef Kullanıcı ID'si (UID) girin:</p>
+                    <input type="text" id="private-user-id" placeholder="Örnek: 1f0a2b3c4d5e6f7g8h9i">
+                    <button id="start-private-chat" style="width: 100%; margin-top: 10px; background-color: var(--primary-color); color: var(--bg-color); padding: 8px; border-radius: 6px; border: none; cursor: pointer;">Sohbeti Başlat</button>
                 </div>
             </div>
 
-            <!-- ANA SOHBET ALANI -->
             <div id="chat-screen">
                 <header>
                     <h1 id="chat-title">Genel Sohbet</h1>
@@ -71,15 +56,12 @@
                     </div>
                 </header>
                 
-                <!-- Mesaj Görüntüleme Alanı -->
                 <div id="messages-area">
                     <div id="message-container" class="chat-area active">
-                        <!-- Genel mesajlar buraya -->
-                    </div>
+                        </div>
                     
                     <div id="private-messages" class="chat-area">
-                        <!-- Özel mesajlar buraya -->
-                        <h3 style="text-align: center; color: #aaa; padding: 20px;">Henüz aktif bir özel sohbet yok.</h3>
+                        <p style="text-align: center; color: #aaa; padding: 20px;">Henüz aktif bir özel sohbet yok. Lütfen bir kullanıcı seçin.</p>
                     </div>
                 </div>
 
