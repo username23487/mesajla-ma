@@ -1,5 +1,4 @@
 // 1. Firebase Yapılandırması (Senden Gelen Config)
-// NOT: Bu configin daha önceki adımda app.js'e eklenmiş olduğunu varsayıyorum.
 
 const firebaseConfig = {
     apiKey: "AIzaSyBWz7yk3t5ouT2ivuHNm4LEIVDBrWsRucc",
@@ -36,12 +35,12 @@ const messageContainer = document.getElementById('message-container');
 const privateUserIdInput = document.getElementById('private-user-id');
 const startPrivateChatButton = document.getElementById('start-private-chat');
 const privateMessagesContainer = document.getElementById('private-messages');
-const privateChatArea = document.getElementById('private-chat-area'); // Özel mesaj göndermek için kullanılacak form alanı
+const privateChatArea = document.getElementById('private-chat-area');
 
 let isRegistering = false;
 let currentUsername = null;
-let currentChatListener = null; // Genel sohbet dinleyicisini tutar
-let privateChatListener = null; // Özel sohbet dinleyicisini tutar
+let currentChatListener = null; 
+let privateChatListener = null; 
 
 // Özel sohbet durumu
 let activePrivateChat = {
@@ -58,20 +57,26 @@ function switchScreen(screenId) {
     document.getElementById(screenId).classList.add('active');
 }
 
-// Giriş/Kayıt formunu değiştirme işlevi
+// Giriş/Kayıt formunu değiştirme işlevi (DÜZELTİLMİŞ KISIM)
 toggleRegister.addEventListener('click', (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Sayfanın yeniden yüklenmesini kesinlikle engelle
+    
     isRegistering = !isRegistering;
     authError.textContent = ''; // Hata mesajını temizle
 
     if (isRegistering) {
         authButton.textContent = 'Kayıt Ol';
         toggleRegister.textContent = 'Giriş Yap';
-        usernameInput.style.display = 'block';
+        // Kullanıcı Adı inputunu görünür yap
+        usernameInput.style.display = 'block'; 
+        // HTML'deki `toggle-register` elemanının metnini güncelleyelim
+        document.getElementById('toggle-register').textContent = 'Giriş Yap'; 
     } else {
         authButton.textContent = 'Giriş Yap';
         toggleRegister.textContent = 'Kayıt Ol';
-        usernameInput.style.display = 'none';
+        // Kullanıcı Adı inputunu gizle
+        usernameInput.style.display = 'none'; 
+        document.getElementById('toggle-register').textContent = 'Kayıt Ol';
     }
 });
 
@@ -93,6 +98,7 @@ authForm.addEventListener('submit', async (e) => {
             }
             
             // Kullanıcı adı benzersizlik kontrolü (Firestore)
+            // Kullanıcı adlarını küçük harfle kaydediyoruz.
             const usernameRef = db.collection('usernames').doc(username.toLowerCase());
             const doc = await usernameRef.get();
             
@@ -146,6 +152,7 @@ auth.onAuthStateChanged(user => {
     if (user) {
         // Kullanıcı Giriş Yaptı
         currentUsername = user.displayName || user.email.split('@')[0];
+        // Kullanıcının UID'sini görünür ve kolay kopyalanabilir yapıyoruz.
         currentUserInfo.innerHTML = `Hoş Geldin, **${currentUsername}**! ID: <span style="font-weight: bold; color: yellow;">${user.uid}</span>`;
         switchScreen('chat-screen');
         
@@ -170,8 +177,7 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// 5. GENEL MESAJ GÖNDERME ve DİNLEME
-
+// 5. GENEL/ÖZEL MESAJ GÖNDERME
 messageForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = messageInput.value.trim();
@@ -202,6 +208,7 @@ async function sendGeneralMessage(text) {
     }
 }
 
+// 6. MESAJLARI DİNLEME ve GÖSTERME (Genel Sohbet)
 function listenForMessages() {
     // Genel Sohbet Dinleyicisi
     currentChatListener = db.collection('messages')
@@ -215,6 +222,7 @@ function listenForMessages() {
             displayMessage(message, messageContainer, false); // Genel sohbet mesajları
         });
         
+        // En alta kaydır
         messageContainer.scrollTop = messageContainer.scrollHeight;
     });
 }
@@ -232,6 +240,11 @@ function displayMessage(message, container, isPrivate = false) {
     // Özel sohbette yazar adını biraz farklı gösterelim
     if (isPrivate) {
         authorText += ' (Özel)';
+        // Özel sohbet alanının başlığını güncelleyelim
+        const header = container.querySelector('h3');
+        if (header) {
+             header.textContent = `Özel Sohbet (Aktif: ${activePrivateChat.targetUsername})`;
+        }
     }
 
     messageElement.innerHTML = `
@@ -246,7 +259,7 @@ function displayMessage(message, container, isPrivate = false) {
     container.appendChild(messageElement);
 }
 
-// 6. ÖZEL SOHBET MANTIKLARI
+// 7. ÖZEL SOHBET MANTIKLARI
 
 // Chat ID oluşturma (UID'leri alfabetik sıraya göre birleştirir)
 function getChatId(targetUid) {
@@ -266,6 +279,7 @@ startPrivateChatButton.addEventListener('click', async () => {
     }
 
     // Hedef kullanıcının varlığını kontrol et ve kullanıcı adını al
+    // Kullanıcı adını 'usernames' koleksiyonundaki UID'ye göre arıyoruz
     const targetUserDoc = await db.collection('usernames').where('uid', '==', targetUid).limit(1).get();
     
     if (targetUserDoc.empty) {
@@ -273,8 +287,8 @@ startPrivateChatButton.addEventListener('click', async () => {
         return;
     }
     
-    const targetUserData = targetUserDoc.docs[0].data();
-    const targetUsername = targetUserDoc.docs[0].id; // Kullanıcı adı doc ID'sinden geliyor
+    // Kullanıcı adı dokümanın ID'sidir (username.toLowerCase() olarak kaydedilmişti)
+    const targetUsername = targetUserDoc.docs[0].id; 
 
     // Chat ID oluştur ve özel sohbeti başlat
     activePrivateChat.targetUid = targetUid;
@@ -285,6 +299,9 @@ startPrivateChatButton.addEventListener('click', async () => {
     if (privateChatListener) privateChatListener();
     
     listenForPrivateMessages(activePrivateChat.chatId);
+    
+    // Kullanıcının dikkatini özel sohbete çekmek için arayüzü güncelleyelim.
+    privateMessagesContainer.style.border = '2px solid var(--primary-color)';
     
     alert(`Özel sohbet başlatıldı: ${targetUsername} ile konuşuyorsunuz.`);
     privateUserIdInput.value = '';
@@ -302,12 +319,18 @@ function listenForPrivateMessages(chatId) {
       .onSnapshot(snapshot => {
         // Sadece mesajları temizle, başlık kalsın
         const existingMessages = privateMessagesContainer.querySelectorAll('.message');
-        existingMessages.forEach(msg => msg.remove());
-        
-        snapshot.forEach(doc => {
-            const message = doc.data();
-            // Mesajları privateMessagesContainer'a ekle
-            displayMessage(message, privateMessagesContainer, true);
+        // Başlık (h3) elemanını koruyarak eski mesajları temizle
+        existingMessages.forEach(msg => {
+            if (!msg.parentElement.querySelector('h3')) {
+                msg.remove();
+            }
+        });
+
+        snapshot.docChanges().forEach(change => {
+            if (change.type === "added") {
+                const message = change.doc.data();
+                displayMessage(message, privateMessagesContainer, true);
+            }
         });
         
         privateMessagesContainer.scrollTop = privateMessagesContainer.scrollHeight;
